@@ -114,8 +114,4 @@ or open:
 
 - Default mode is disabled for every chat, so newly added chats are safe.
 - Auto-delete timers above 1 hour are rejected.
-- Telegram limits are respected through FloodWait sleeps.
-- Send/reply/edit callback failures such as missing admin rights or unchanged messages are handled safely to avoid dispatcher tracebacks.
-- Broadcast uses `forward`, not `copy`, as requested.
-- Blocked/deleted PM users are removed from the `users` collection during broadcast.
-- This project keeps original credits for **GitHub.com/mntgxo** and the source repository.
+- Please don't remove source repo url (thats the only way to support our repo) .
