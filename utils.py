@@ -22,7 +22,7 @@ CHAT_ERRORS = (ChatWriteForbidden, ChannelPrivate, ChatAdminRequired)
 DELETE_IGNORED_ERRORS = (MessageDeleteForbidden, MessageIdInvalid)
 EDIT_IGNORED_ERRORS = (MessageNotModified, MessageIdInvalid)
 MAX_DELETE_SECONDS = 3600
-REPO_URL = "https://github.com/MN-BOTS/Mn-Auto-Delete"
+REPO_URL = "https://github.com/MN-BOTS/Mn-auto-delete-telegram-bot"
 DEV_URL = "https://github.com/mntgxo"
 
 
