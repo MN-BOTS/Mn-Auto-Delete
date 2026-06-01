@@ -14,10 +14,13 @@ broadcasts = db.broadcasts
 
 def init_db():
     chats.create_index([("enabled", ASCENDING)])
+    chats.create_index([("type", ASCENDING)])
     messages.create_index([("delete_at", ASCENDING)])
     messages.create_index([("chat_id", ASCENDING), ("message_id", ASCENDING)], unique=True)
     users.create_index([("blocked", ASCENDING)])
-    fsubs.create_index([("chat_id", ASCENDING)], unique=True)
+    if "chat_id_1" in fsubs.index_information():
+        fsubs.drop_index("chat_id_1")
+    fsubs.create_index([("title", ASCENDING)])
 
 
 def now_utc():
@@ -57,6 +60,10 @@ def mark_blocked(user_id):
         {"$set": {"blocked": True, "blocked_at": now_utc()}},
         upsert=True,
     )
+
+
+def remove_user(user_id):
+    users.delete_one({"_id": int(user_id)})
 
 
 def save_chat(chat, user_id=None):
@@ -147,3 +154,19 @@ def remove_fsub(chat_id):
 
 def list_fsubs():
     return list(fsubs.find().sort("title", ASCENDING))
+
+
+def notice_chats():
+    return list(chats.find({"type": {"$regex": "GROUP"}}).sort("title", ASCENDING))
+
+
+def save_notice_message(chat_id, message_id):
+    chats.update_one(
+        {"_id": int(chat_id)},
+        {"$set": {"last_notice_message_id": int(message_id), "last_notice_at": now_utc()}},
+    )
+
+
+def clear_notice_message(chat_id, error=None):
+    payload = {"last_notice_message_id": None, "last_notice_error": error, "last_notice_at": now_utc()}
+    chats.update_one({"_id": int(chat_id)}, {"$set": payload})

@@ -11,16 +11,18 @@ A MongoDB-backed Telegram auto-delete bot built with Pyrogram/pyrotgfork. Every 
 
 - ✅ **Per-group and per-channel settings** managed by each chat owner/admin.
 - ✅ **Default safe mode:** the bot does **not delete anything** until `/setdelete` or `/deleteon` is used in that chat.
-- ✅ **Custom delete times:** supports seconds, minutes, hours, and days (`10s`, `5m`, `1h`, `1d`).
+- ✅ **Custom delete times up to 1 hour:** supports seconds, minutes, and hours (`10s`, `5m`, `1h`).
 - ✅ **MongoDB persistence:** chat settings and pending delete jobs survive restarts.
 - ✅ **Restart recovery:** the bot resumes all pending delete schedules from MongoDB on startup.
 - ✅ **Proper FloodWait handling** for deleting, admin checks, force-sub checks, and broadcasts.
 - ✅ **Multiple force-sub chats** with owner commands to add/remove/list requirements.
-- ✅ **Rich dynamic UI** with inline buttons for settings, source links, and force-sub verification.
+- ✅ **Rich dynamic UI** with inline callbacks for start menus, settings, help, owner panels, source links, and force-sub verification.
 - ✅ **Owner management panel** with stats for users, chats, enabled chats, force-sub chats, and pending delete jobs.
 - ✅ **Forward-method broadcast** to bot PM users, groups, and channels.
-- ✅ **Blocked/deleted PM cleanup:** blocked users are automatically marked in MongoDB during broadcast.
-- ✅ Flask health check for Koyeb/Render-style deployments.
+- ✅ **Blocked/deleted PM cleanup:** blocked users are automatically removed from MongoDB during broadcast.
+- ✅ Hourly group notice system that deletes the previous notice before sending the new one.
+- ✅ Automatic Telegram command registration on startup.
+- ✅ Quiet Flask/Werkzeug health check for Koyeb/Render-style deployments.
 
 ---
 
@@ -36,6 +38,8 @@ A MongoDB-backed Telegram auto-delete bot built with Pyrogram/pyrotgfork. Every 
 | `DATABASE_NAME` | ❌ | MongoDB database name | `mn_auto_delete` |
 | `PORT` | ❌ | Flask health-check port | `8000` |
 | `BROADCAST_SLEEP` | ❌ | Small delay between broadcast forwards | `0.05` |
+| `NOTICE_INTERVAL` | ❌ | Group notice interval in seconds; defaults to hourly | `3600` |
+| `NOTICE_TEXT` | ❌ | Text sent to all known groups every notice interval | `Use /settings to manage me` |
 
 ---
 
@@ -48,6 +52,7 @@ Use these inside a group or channel where the bot is present:
 | `/settings` | Open the dynamic settings panel. |
 | `/setdelete 30s` | Enable auto-delete and delete new messages after 30 seconds. |
 | `/setdelete 5m` | Enable auto-delete with a 5-minute timer. |
+| `/setdelete 1h` | Enable auto-delete with the maximum allowed 1-hour timer. |
 | `/setdelete off` | Disable auto-delete. |
 | `/deleteon` | Enable auto-delete with saved time, or 60 seconds if no time was saved. |
 | `/deleteoff` | Disable auto-delete for new messages. |
@@ -73,9 +78,9 @@ Use these in the bot PM from the configured `OWNER` account:
 
 ## 🗄️ MongoDB Collections
 
-- `chats` - per-chat settings, status, titles, and metadata.
+- `chats` - per-chat settings, status, titles, last hourly notice ID, and metadata.
 - `messages` - pending/completed delete jobs with delete timestamps.
-- `users` - bot PM users and blocked/deactivated status.
+- `users` - bot PM users; blocked/deactivated PM users are removed during broadcast.
 - `fsubs` - multiple force-sub chat requirements.
 - `broadcasts` - broadcast history and delivery stats.
 
@@ -108,6 +113,9 @@ or open:
 ## ⚠️ Notes
 
 - Default mode is disabled for every chat, so newly added chats are safe.
+- Auto-delete timers above 1 hour are rejected.
 - Telegram limits are respected through FloodWait sleeps.
+- Send/reply/edit callback failures such as missing admin rights or unchanged messages are handled safely to avoid dispatcher tracebacks.
 - Broadcast uses `forward`, not `copy`, as requested.
+- Blocked/deleted PM users are removed from the `users` collection during broadcast.
 - This project keeps original credits for **GitHub.com/mntgxo** and the source repository.

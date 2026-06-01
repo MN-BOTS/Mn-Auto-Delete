@@ -1,11 +1,21 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait, UserNotParticipant
+from config import OWNER
 import database
-from utils import start_keyboard, sleep_flood
-
-CREDITS = "GitHub.com/mntgxo"
-REPO = "https://github.com/MN-BOTS/Mn-Auto-Delete"
+from utils import (
+    start_keyboard,
+    sleep_flood,
+    main_menu_keyboard,
+    back_home_keyboard,
+    home_text,
+    commands_text,
+    features_text,
+    credits_text,
+    chat_help_text,
+    safe_reply,
+    safe_edit_message,
+    safe_callback_answer,
+)
 
 async def missing_fsubs(client, user_id):
     missing = []
@@ -31,7 +41,7 @@ async def start(client, message):
     database.upsert_user(message.from_user)
     missing = await missing_fsubs(client, message.from_user.id)
     if missing:
-        await message.reply_text(
+        await safe_reply(message,
             "**🔐 Force Subscribe Required**\n\n"
             "Please join every required channel/group, then tap **I Joined**.",
             reply_markup=start_keyboard(missing),
@@ -39,20 +49,9 @@ async def start(client, message):
         )
         return
 
-    await message.reply_text(
-        "**👋 Welcome to MN Auto Delete Bot**\n\n"
-        "• Group/channel admins can set their own delete timer.\n"
-        "• Settings are saved in MongoDB and survive restarts.\n"
-        "• Default mode deletes nothing until enabled.\n\n"
-        "**Commands:**\n"
-        "`/settings` - open chat settings\n"
-        "`/setdelete 30s` - set custom delete time\n"
-        "`/deleteon` / `/deleteoff` - toggle auto-delete\n\n"
-        f"**Credits:** {CREDITS}\n"
-        f"**Repo:** {REPO}",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("⭐ Source Code", url=REPO)], [InlineKeyboardButton("Developer", url="https://github.com/mntgxo")]]
-        ),
+    await safe_reply(message,
+        home_text(),
+        reply_markup=main_menu_keyboard(message.from_user.id == OWNER.ID),
         disable_web_page_preview=True,
     )
 
@@ -61,12 +60,51 @@ async def check_fsub(client, query):
     database.upsert_user(query.from_user)
     missing = await missing_fsubs(client, query.from_user.id)
     if missing:
-        await query.answer("Please join all required chats first.", show_alert=True)
-        await query.message.edit_reply_markup(reply_markup=start_keyboard(missing))
+        await safe_callback_answer(query, "Please join all required chats first.", show_alert=True)
+        await safe_edit_message(
+            query.message,
+            "**🔐 Force Subscribe Required**\n\nPlease join every required channel/group, then tap **I Joined**.",
+            reply_markup=start_keyboard(missing),
+            disable_web_page_preview=True,
+        )
         return
-    await query.answer("Verified ✅", show_alert=True)
-    await query.message.edit_text(
-        "**✅ Subscription verified!**\n\nSend /start again to open the management panel.",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⭐ Repo", url=REPO)]]),
+    await safe_callback_answer(query, "Verified ✅", show_alert=True)
+    await safe_edit_message(query.message,
+        home_text(),
+        reply_markup=main_menu_keyboard(query.from_user.id == OWNER.ID),
         disable_web_page_preview=True,
     )
+
+@Client.on_callback_query(filters.regex(r"^start:"))
+async def start_callbacks(client, query):
+    database.upsert_user(query.from_user)
+    missing = await missing_fsubs(client, query.from_user.id)
+    if missing:
+        await safe_callback_answer(query, "Join all required chats first.", show_alert=True)
+        await safe_edit_message(query.message,
+            "**🔐 Force Subscribe Required**\n\nPlease join every required channel/group, then tap **I Joined**.",
+            reply_markup=start_keyboard(missing),
+            disable_web_page_preview=True,
+        )
+        return
+
+    action = query.data.split(":", 1)[1]
+    is_owner = query.from_user.id == OWNER.ID
+    if action == "home":
+        text = home_text()
+        keyboard = main_menu_keyboard(is_owner)
+    elif action == "commands":
+        text = commands_text()
+        keyboard = back_home_keyboard(is_owner)
+    elif action == "features":
+        text = features_text()
+        keyboard = back_home_keyboard(is_owner)
+    elif action == "credits":
+        text = credits_text()
+        keyboard = back_home_keyboard(is_owner)
+    else:
+        text = chat_help_text()
+        keyboard = back_home_keyboard(is_owner)
+
+    await safe_callback_answer(query, "Updated ✨")
+    await safe_edit_message(query.message, text, reply_markup=keyboard, disable_web_page_preview=True)

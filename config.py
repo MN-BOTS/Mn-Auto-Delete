@@ -23,3 +23,10 @@ class DATABASE:
 
 class BROADCAST:
     SLEEP = float(os.environ.get("BROADCAST_SLEEP", "0.05"))
+
+class NOTICE:
+    INTERVAL = int(os.environ.get("NOTICE_INTERVAL", "3600"))
+    TEXT = os.environ.get(
+        "NOTICE_TEXT",
+        "🧹 MN Auto Delete is active. Use /settings to manage auto-delete. Credits: GitHub.com/mntgxo",
+    )
